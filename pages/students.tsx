@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import Head from "next/head";
+import { useRouter } from "next/router";
 import Nav from "@/components/Nav";
 import { ApiError, fetchStudents } from "@/lib/api";
 import { Student } from "@/types/student";
@@ -7,6 +8,7 @@ import { Student } from "@/types/student";
 type LoadState = "loading" | "success" | "error";
 
 export default function StudentsList() {
+  const router = useRouter();
   const [students, setStudents] = useState<Student[]>([]);
   const [state, setState] = useState<LoadState>("loading");
   const [errorMessage, setErrorMessage] = useState<string>("");
@@ -23,10 +25,15 @@ export default function StudentsList() {
           setState("success");
         }
       } catch (err) {
-        if (!cancelled) {
-          setErrorMessage(err instanceof ApiError ? err.message : "Failed to load students.");
-          setState("error");
+        if (cancelled) return;
+
+        if (err instanceof ApiError && err.status === 401) {
+          router.push("/login?redirect=/students");
+          return;
         }
+
+        setErrorMessage(err instanceof ApiError ? err.message : "Failed to load students.");
+        setState("error");
       }
     }
 
@@ -34,7 +41,7 @@ export default function StudentsList() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [router]);
 
   return (
     <>
@@ -76,9 +83,7 @@ export default function StudentsList() {
                 {students.map((s) => (
                   <tr key={s.id} className="border-b border-slate-100 last:border-0">
                     <td className="px-4 py-3">{s.id}</td>
-                    <td className="px-4 py-3">
-                      {s.first_name} {s.last_name}
-                    </td>
+                    <td className="px-4 py-3">{s.first_name} {s.last_name}</td>
                     <td className="px-4 py-3">{s.email}</td>
                     <td className="px-4 py-3">{s.mobile}</td>
                     <td className="px-4 py-3">{s.course}</td>

@@ -62,8 +62,8 @@ Open: **http://localhost:3000**
 All API calls live in `lib/api.ts`. It reads the backend's base URL from
 `NEXT_PUBLIC_API_URL` and calls:
 
-- `POST {NEXT_PUBLIC_API_URL}/api/students` — to register a student
-- `GET {NEXT_PUBLIC_API_URL}/api/students` — to list students
+- `POST {NEXT_PUBLIC_API_URL}/api/v1/students` — to register a student
+- `GET {NEXT_PUBLIC_API_URL}/api/v1/students` — to list students
 
 `lib/validation.ts` re-implements the same validation rules as the
 backend's Pydantic schema, so users get instant feedback before any

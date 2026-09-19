@@ -1,7 +1,6 @@
 import { RegisterSuccessResponse, Student, StudentFormData } from "@/types/student";
+import { Admin } from "@/types/auth";
 
-// The frontend NEVER connects directly to PostgreSQL. It only ever talks
-// to the FastAPI backend over HTTP, using this base URL.
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 export class ApiError extends Error {
@@ -15,29 +14,19 @@ export class ApiError extends Error {
   }
 }
 
-/**
- * Calls POST /api/students on the backend.
- * Throws ApiError with a clean, user-friendly message on failure.
- */
 export async function registerStudent(data: StudentFormData): Promise<RegisterSuccessResponse> {
   let response: Response;
   try {
-    response = await fetch(`${API_URL}/api/students`, {
+    response = await fetch(`${API_URL}/api/v1/students`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
     });
   } catch (err) {
-    // Network-level failure: backend not running, wrong URL, CORS block, etc.
-    throw new ApiError(
-      "Could not reach the server. Please make sure the backend is running and try again.",
-      0
-    );
+    throw new ApiError("Could not reach the server. Please make sure the backend is running and try again.", 0);
   }
 
-  if (response.status === 201) {
-    return response.json();
-  }
+  if (response.status === 201) return response.json();
 
   if (response.status === 409) {
     const body = await response.json().catch(() => ({}));
@@ -46,28 +35,30 @@ export async function registerStudent(data: StudentFormData): Promise<RegisterSu
 
   if (response.status === 422) {
     const body = await response.json().catch(() => ({}));
-    throw new ApiError(
-      "Please fix the highlighted fields and try again.",
-      422,
-      body.errors || []
-    );
+    throw new ApiError("Please fix the highlighted fields and try again.", 422, body.errors || []);
   }
 
   throw new ApiError("Something went wrong while registering. Please try again.", response.status);
 }
 
 /**
- * Calls GET /api/students on the backend.
+ * Requires the admin auth cookie - "credentials: include" tells the
+ * browser to send it even though this is a cross-origin request
+ * (localhost:3000 -> localhost:8000).
  */
 export async function fetchStudents(): Promise<Student[]> {
   let response: Response;
   try {
-    response = await fetch(`${API_URL}/api/students`, { method: "GET" });
+    response = await fetch(`${API_URL}/api/v1/students`, {
+      method: "GET",
+      credentials: "include",
+    });
   } catch (err) {
-    throw new ApiError(
-      "Could not reach the server. Please make sure the backend is running and try again.",
-      0
-    );
+    throw new ApiError("Could not reach the server. Please make sure the backend is running and try again.", 0);
+  }
+
+  if (response.status === 401) {
+    throw new ApiError("You must be logged in to view this page.", 401);
   }
 
   if (!response.ok) {
@@ -75,4 +66,57 @@ export async function fetchStudents(): Promise<Student[]> {
   }
 
   return response.json();
+}
+
+/**
+ * On success, the backend sets an httpOnly cookie via Set-Cookie - this
+ * function never sees or stores the token itself.
+ */
+export async function loginAdmin(username: string, password: string): Promise<string> {
+  let response: Response;
+  try {
+    response = await fetch(`${API_URL}/api/v1/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ username, password }),
+    });
+  } catch (err) {
+    throw new ApiError("Could not reach the server. Please make sure the backend is running and try again.", 0);
+  }
+
+  if (response.status === 401) {
+    throw new ApiError("Invalid username or password.", 401);
+  }
+
+  if (!response.ok) {
+    throw new ApiError("Login failed. Please try again.", response.status);
+  }
+
+  const body = await response.json();
+  return body.username;
+}
+
+export async function logoutAdmin(): Promise<void> {
+  await fetch(`${API_URL}/api/v1/auth/logout`, {
+    method: "POST",
+    credentials: "include",
+  }).catch(() => { });
+}
+
+/**
+ * The frontend cannot read the httpOnly cookie directly, so this is how
+ * it finds out "am I logged in?".
+ */
+export async function getCurrentAdmin(): Promise<Admin | null> {
+  try {
+    const response = await fetch(`${API_URL}/api/v1/auth/me`, {
+      method: "GET",
+      credentials: "include",
+    });
+    if (!response.ok) return null;
+    return response.json();
+  } catch {
+    return null;
+  }
 }
