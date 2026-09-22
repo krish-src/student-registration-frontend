@@ -15,12 +15,22 @@ export default function Login() {
         e.preventDefault();
         setError("");
         setIsLoading(true);
+
         try {
             await loginAdmin(username, password);
-            const redirectTo = (router.query.redirect as string) || "/students";
-            router.push(redirectTo);
+
+            const redirectTo =
+                typeof router.query.redirect === "string"
+                    ? router.query.redirect
+                    : "/students";
+
+            window.location.href = redirectTo;
         } catch (err) {
-            setError(err instanceof ApiError ? err.message : "Login failed. Please try again.");
+            setError(
+                err instanceof ApiError
+                    ? err.message
+                    : "Login failed. Please try again."
+            );
         } finally {
             setIsLoading(false);
         }
@@ -31,10 +41,17 @@ export default function Login() {
             <Head>
                 <title>Admin Login</title>
             </Head>
+
             <Nav />
+
             <main className="max-w-sm mx-auto px-4 py-16">
-                <h1 className="text-2xl font-bold text-slate-800 mb-1">Admin Login</h1>
-                <p className="text-slate-500 mb-6 text-sm">Log in to view the list of registered students.</p>
+                <h1 className="text-2xl font-bold text-slate-800 mb-1">
+                    Admin Login
+                </h1>
+
+                <p className="text-slate-500 mb-6 text-sm">
+                    Log in to view the list of registered students.
+                </p>
 
                 {error && (
                     <div className="mb-4 rounded-md bg-red-50 border border-red-300 px-4 py-3 text-red-800 text-sm">
@@ -42,9 +59,15 @@ export default function Login() {
                     </div>
                 )}
 
-                <form onSubmit={handleSubmit} className="bg-white rounded-lg border border-slate-200 p-6 space-y-4">
+                <form
+                    onSubmit={handleSubmit}
+                    className="bg-white rounded-lg border border-slate-200 p-6 space-y-4"
+                >
                     <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Username</label>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">
+                            Username
+                        </label>
+
                         <input
                             type="text"
                             required
@@ -56,7 +79,10 @@ export default function Login() {
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Password</label>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">
+                            Password
+                        </label>
+
                         <input
                             type="password"
                             required
