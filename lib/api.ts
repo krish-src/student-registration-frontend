@@ -1,7 +1,7 @@
 import { RegisterSuccessResponse, Student, StudentFormData } from "@/types/student";
 import { Admin } from "@/types/auth";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 export class ApiError extends Error {
   status: number;
